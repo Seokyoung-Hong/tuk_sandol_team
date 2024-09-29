@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 import os
 import re
 from functools import wraps
-import traceback
 
 from fastapi import Request
 from kakao_chatbot import Payload
@@ -20,7 +19,7 @@ from crawler import Restaurant
 from crawler.settings import KST
 from crawler.ibookcrawler import BookTranslator
 from crawler.ibookdownloader import BookDownloader
-from api_server.settings import CAFETRIA_REGISTER_QUICK_REPLY_LIST
+from api_server.settings import CAFETRIA_REGISTER_QUICK_REPLY_LIST, logger
 
 
 def get_last_saved_date(filepath: str) -> datetime:
@@ -42,7 +41,7 @@ def get_last_saved_date(filepath: str) -> datetime:
         last_saved = workbook.properties.modified
         return last_saved.astimezone(KST)
     except Exception as e:  # pylint: disable=broad-except
-        print(f"Error: {e}")
+        logger.error(f"Error: {e}")
         return datetime.now(tz=KST) - timedelta(days=7)
 
 
@@ -234,13 +233,13 @@ def error_message(message: str | BaseException) -> TextCardComponent:
     if isinstance(message, BaseException):
         exception_type = type(message).__name__
         exception_message = str(message)
-        exception_traceback = "".join(  # TODO(Seokyoung_Hong): 베포시 주석 처리
-            traceback.format_tb(message.__traceback__))
+        # exception_traceback = "".join(
+        #     traceback.format_tb(message.__traceback__))
 
         detailed_message = (
             f"예외 타입: {exception_type}\n"
             f"예외 메시지: {exception_message}\n"
-            f"트레이스백:\n{exception_traceback}"  # TODO(Seokyoung_Hong): 베포시 주석 처리
+            # f"트레이스백:\n{exception_traceback}"
         )
         message = detailed_message
     message += "\n죄송합니다. 서버 오류가 발생했습니다. 오류가 지속될 경우 관리자에게 문의해주세요."
@@ -283,9 +282,10 @@ def check_tip_and_e(func):
 
             if registration_time < last_wednesday:
                 must_download = True
-            print('tip.registration_time:', tip.registration_time.isoformat())
-            print('start_of_day:', start_of_day.isoformat())
-            print('registration_time:', registration_time.isoformat())
+            logger.info('tip.registration_time:',
+                        tip.registration_time.isoformat())
+            logger.info('start_of_day:', start_of_day.isoformat())
+            logger.info('registration_time:', registration_time.isoformat())
         else:
             must_download = True
 
